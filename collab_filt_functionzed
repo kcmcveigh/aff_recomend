@@ -1,0 +1,124 @@
+# %%
+import pandas as pd
+import numpy as np
+import scipy
+from scipy import sparse
+from implicit.als import AlternatingLeastSquares
+import seaborn as sns
+
+def fill_nan_values(data):
+    """
+    Fill NaN values in the DataFrame with zeros.
+    """
+    return data.fillna(0)
+
+def create_csr_matrix(data):
+    """
+    Create a CSR matrix from the DataFrame.
+    """
+    csr_matrix = sparse.csr_matrix(data.values)
+    return csr_matrix
+
+def train_model(matrix):
+    """
+    Train the Alternating Least Squares model.
+    """
+    model = AlternatingLeastSquares(
+        factors=2,
+        regularization=0.05,
+        alpha=2.0,
+        calculate_training_loss=True,
+        iterations=15
+    )
+    model.fit(matrix)
+    return model
+
+def plot_user_factors(model, data):
+    """
+    Plot the user factors.
+    """
+    sns.scatterplot(
+        x=model.user_factors[:, 0],
+        y=model.user_factors[:, 1],
+        hue=data.mean(axis=1).values
+    )
+
+def get_factors(model, log_data, factor_type):
+    """
+    Get the participant factors or video factors associated with each item factor based on the factor_type parameter.
+    """
+    if factor_type == 'participant':
+        item_factors = model.user_factors
+        factor_nums = log_data['participant_num'].unique()
+    elif factor_type == 'video':
+        item_factors = model.item_factors
+        factor_nums = log_data['video'].unique()
+    else:
+        raise ValueError("Invalid factor_type. Please choose 'participant' or 'video'.")
+    
+    factors = dict(zip(factor_nums, item_factors))
+    factors = pd.DataFrame(factors).T
+    return factors
+
+def plot_item_factors(model, data):
+    """
+    Plot the item factors.
+    """
+    mean_ratings = data.mean(axis=0)
+    sns.scatterplot(
+        x=model.item_factors[:, 0],
+        y=model.item_factors[:, 1],
+        hue=mean_ratings.values
+    )
+
+def preprocess_data(
+        data,
+        target_col,
+        participant_col='participant_num',
+        video_col='video'
+    ):
+    """
+    Preprocess the data by filling NaN values, transforming the target column, and creating a pivot table.
+    """
+    data =data[[target_col, participant_col, video_col]]
+    data = data.dropna()
+    data[target_col] = data[target_col] - data.groupby(participant_col)[target_col].transform('mean')
+    vid_idx, vid_name = pd.factorize(data.video)
+    vid_name_idx_dict = dict(zip(vid_name, vid_idx))
+    data[video_col] = data[video_col].map(vid_name_idx_dict)
+    par_video_matrix = data.pivot(index=participant_col,
+                                   columns=video_col,
+                                     values=target_col)
+    
+    return par_video_matrix.fillna(0),vid_name#need to look into this
+
+# %% Main function
+def main():
+    df = pd.read_csv('full_logfile_scr_0.csv')
+    
+    for target_col in ['resp_fear','video_scr','video_hp']:
+        # Preprocess data
+        par_video_matrix, vid_names = preprocess_data(df, target_col)
+        
+        # Fill NaN values
+        par_video_matrix = fill_nan_values(par_video_matrix)
+        
+        # Create CSR matrix
+        csr_par_vid = create_csr_matrix(par_video_matrix)
+        
+        # Train model
+        model = train_model(csr_par_vid)        
+        # Get participant factors
+        participant_factors = get_factors(model, df, 'participant')
+        video_factors = get_factors(model, df, 'video')
+
+        video_factors.to_csv(f'{target_col}_video_factors.csv')
+        participant_factors.to_csv(f'{target_col}_participant_factors.csv')
+
+    
+    
+
+if __name__ == "__main__":
+    main()
+# Fill NaN values if needed (e.g., with zeros)
+# %%
