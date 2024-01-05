@@ -41,7 +41,7 @@ def simulate_collaborative_data(n_person_factors, n_item_factors, n_items, n_per
     item_intercepts = np.random.normal(size=(n_items,))
     
     # Create dense matrix using dot product of latent factors and add intercepts
-    dense_matrix = np.dot(person_factors, item_factors.T) # + person_intercepts[:, np.newaxis] + item_intercepts[np.newaxis, :]
+    dense_matrix = np.dot(person_factors, item_factors.T) + person_intercepts[:, np.newaxis] + item_intercepts[np.newaxis, :]
     
     return dense_matrix, person_factors, item_factors, person_intercepts, item_intercepts
 
@@ -179,3 +179,37 @@ def save_model_and_stats(learn,n_epochs,n_factors,rating_name):
     learn.save(f'{rating_name}_{n_epochs}_{n_factors}_model')
     log = learn.csv_logger.read_log()
     log.to_csv(f'results/{rating_name}_{n_epochs}_{n_factors}_stats.csv')
+
+def load_saved_model_weights(model, dls, path):
+    """
+    Load the saved model weights from the specified path.
+
+    Args:
+        model (nn.Module): The model to load the weights into.
+        dls (DataLoaders): The data loaders used for training the model.
+        path (str): The path to the saved model weights.
+
+    Returns:
+        nn.Module: The model with the loaded weights.
+    """
+    learn = Learner(dls, model, loss_func=MSELossFlat(), cbs=CSVLogger())
+    learn.load(path)
+    return learn.model
+
+def reconstruct_matrix(model, y_range):
+    '''
+    Reconstructs the matrix using the trained model.
+
+    Args:
+        model: The trained model object.
+        y_range: The range of values for the sigmoid function.
+
+    Returns:
+        A pandas DataFrame containing the reconstructed matrix.
+    '''
+    par_weights = model.u_weight.weight.detach().numpy()
+    par_bias = model.u_bias.weight.detach().numpy()
+    item_weights = model.i_weight.weight.detach().numpy()
+    item_bias = model.i_bias.weight.detach().numpy()
+    model_preds = sigmoid_range(torch.tensor(np.dot(par_weights, item_weights.T) + par_bias + item_bias.T), *y_range)
+    return pd.DataFrame(model_preds)
