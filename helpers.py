@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import glob
 from fastai.collab import *
 from fastai.tabular.all import *
 from fastai.test_utils import *
@@ -179,6 +180,22 @@ def save_model_and_stats(learn,n_epochs,n_factors,rating_name):
     learn.save(f'{rating_name}_{n_epochs}_{n_factors}_model')
     log = learn.csv_logger.read_log()
     log.to_csv(f'results/{rating_name}_{n_epochs}_{n_factors}_stats.csv')
+
+def get_n_factors_for_min_loss(target_var):
+    """
+    Returns the number of factors that result in the minimum loss for a given target variable.
+    
+    Parameters:
+    target_var (str): The target variable for which the number of factors is determined.
+    
+    Returns:
+    int: The number of factors that result in the minimum loss.
+    """
+    valid_loss_vals = []
+    for idx,stats_path in enumerate(glob.glob(f'results/{target_var}*stats.csv')):
+        df = pd.read_csv(stats_path)
+        valid_loss_vals.append(df['valid_loss'].values[-1])
+    return np.argmin(valid_loss_vals)+1
 
 def load_saved_model_weights(model, dls, path):
     """
