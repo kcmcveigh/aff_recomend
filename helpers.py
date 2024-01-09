@@ -181,6 +181,24 @@ def save_model_and_stats(learn,n_epochs,n_factors,rating_name):
     log = learn.csv_logger.read_log()
     log.to_csv(f'results/{rating_name}_{n_epochs}_{n_factors}_stats.csv')
 
+def create_val_loss_list_across_models(target_var):
+    """
+    Create a list of validation loss values across multiple models.
+
+    Args:
+        target_var (str): The target variable.
+
+    Returns:
+        list: A list of validation loss values.
+
+    """
+    valid_loss_vals,n_factors = [],[]
+    for idx, stats_path in enumerate(glob.glob(f'results/{target_var}*stats.csv')):
+        df = pd.read_csv(stats_path)
+        valid_loss_vals.append(df['valid_loss'].values[-1])
+        n_factors.append(int(stats_path.split('_')[-2]))
+    return valid_loss_vals,n_factors
+
 def get_n_factors_for_min_loss(target_var):
     """
     Returns the number of factors that result in the minimum loss for a given target variable.
@@ -191,11 +209,8 @@ def get_n_factors_for_min_loss(target_var):
     Returns:
     int: The number of factors that result in the minimum loss.
     """
-    valid_loss_vals = []
-    for idx,stats_path in enumerate(glob.glob(f'results/{target_var}*stats.csv')):
-        df = pd.read_csv(stats_path)
-        valid_loss_vals.append(df['valid_loss'].values[-1])
-    return np.argmin(valid_loss_vals)+1
+    valid_loss_vals, n_factors = create_val_loss_list_across_models(target_var)
+    return n_factors[np.argmin(valid_loss_vals)]
 
 def load_saved_model_weights(model, dls, path):
     """

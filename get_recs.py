@@ -2,7 +2,7 @@
 from helpers import *
 # %%
 def main():
-# Set up parameters
+    # Set up parameters
     item_name = 'video'
     user_name = 'participant_num'
     n_epochs = 20
@@ -37,7 +37,7 @@ def main():
         rank_df.to_csv(f'results/{rating_name}_rank_df.csv')
 
     
-
+#%%
 if __name__ == '__main__':
     main()
 

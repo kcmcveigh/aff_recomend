@@ -30,7 +30,7 @@ def main():
 
     n_users, n_items = get_n_users(dls, user_name),get_n_items(dls, item_name)
 
-    for n_factors in range(1,7):
+    for n_factors in range(1,6):
 
         cf_model = create_cf_model(n_users, n_items, n_factors)
 
