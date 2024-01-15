@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import glob
+from scipy import stats
 from fastai.collab import *
 from fastai.tabular.all import *
 from fastai.test_utils import *
@@ -245,3 +246,5 @@ def reconstruct_matrix(model, y_range):
     item_bias = model.i_bias.weight.detach().numpy()
     model_preds = sigmoid_range(torch.tensor(np.dot(par_weights, item_weights.T) + par_bias + item_bias.T), *y_range)
     return pd.DataFrame(model_preds)
+
+

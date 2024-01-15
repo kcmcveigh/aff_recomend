@@ -32,8 +32,6 @@ def main():
         
         rank_series = pred_df.apply(lambda row: np.argsort(-row.values), axis=1)
         rank_df = pd.DataFrame(np.vstack(rank_series.values))
-        rank_df.index = dls.classes['participant_num']
-        rank_df.columns = dls.classes['video']
         rank_df.to_csv(f'results/{rating_name}_rank_df.csv')
 
     
